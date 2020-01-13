@@ -52,31 +52,31 @@ function _M.check_schema(conf)
     return true
 end
 
-local function extract_auth_header(authorization)
+local function do_extract(auth)
+    local obj = { username = "", password = "" }
 
-    local function do_extract(auth)
-        local obj = { username = "", password = "" }
-
-        local m, err = ngx.re.match(auth, "Basic\\s(.+)")
-        if err then
-            -- error authorization
-            return nil, err
-        end
-
-        local decoded = ngx.decode_base64(m[1])
-
-        local res
-        res, err = ngx_re.split(decoded, ":")
-        if err then
-            return nil, "split authorization err:" .. err
-        end
-
-        obj.username = ngx.re.gsub(res[1], "\\s+", "")
-        obj.password = ngx.re.gsub(res[2], "\\s+", "")
-        core.log.info("plugin access phase, authorization: ", obj.username, ": ", obj.password)
-
-        return obj, nil
+    local m, err = ngx.re.match(auth, "Basic\\s(.+)")
+    if err then
+        -- error authorization
+        return nil, err
     end
+
+    local decoded = ngx.decode_base64(m[1])
+
+    local res
+    res, err = ngx_re.split(decoded, ":")
+    if err then
+        return nil, "split authorization err:" .. err
+    end
+
+    obj.username = ngx.re.gsub(res[1], "\\s+", "")
+    obj.password = ngx.re.gsub(res[2], "\\s+", "")
+    core.log.info("plugin access phase, authorization: ", obj.username, ": ", obj.password)
+
+    return obj, nil
+end
+
+local function extract_auth_header(authorization)
 
     local matcher, err = lrucache(authorization, nil, do_extract, authorization)
 
